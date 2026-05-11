@@ -142,10 +142,10 @@ export default function PlanosTratamentoPage() {
         status: editingPlano?.status || "pendente",
       };
       if (editingPlano) {
-        const { error } = await supabase.from("planos_tratamento").update(payload).eq("id", editingPlano.id);
+        const { error } = await supabase.from("planos_tratamento").update(payload as any).eq("id", editingPlano.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("planos_tratamento").insert(payload);
+        const { error } = await supabase.from("planos_tratamento").insert(payload as any);
         if (error) throw error;
       }
     },

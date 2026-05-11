@@ -8,35 +8,34 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
   className?: string;
   children?: React.ReactNode;
+  eyebrow?: string;
 }
 
 export function PageHeader({
   title,
   description,
-  icon,
   actions,
   className,
   children,
+  eyebrow,
 }: PageHeaderProps) {
   return (
     <div
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6",
+        "flex items-end justify-between gap-4 pb-3 mb-5 border-b border-border",
         className
       )}
     >
-      <div className="flex items-center gap-3">
-        {icon && (
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-            {icon}
-          </div>
+      <div className="min-w-0">
+        {eyebrow && (
+          <p className="text-2xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+            {eyebrow}
+          </p>
         )}
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-          {description && (
-            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-          )}
-        </div>
+        <h1 className="text-xl font-display font-semibold text-foreground tracking-tight">{title}</h1>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        )}
       </div>
 
       {(actions || children) && (

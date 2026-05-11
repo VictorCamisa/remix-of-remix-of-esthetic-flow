@@ -234,7 +234,7 @@ export function TransicaoModal({
           lancamento.forma_pagamento_id = formaPagamento;
         }
 
-        const { error: finError } = await supabase.from("td_fluxo_de_caixa").insert(lancamento);
+        const { error: finError } = await supabase.from("td_fluxo_de_caixa").insert(lancamento as any);
         if (finError) {
           console.error("Erro ao lançar no fluxo de caixa:", finError);
           toast({

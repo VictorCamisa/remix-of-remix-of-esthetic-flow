@@ -56,7 +56,11 @@ export default {
 				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 				border: 'hsl(var(--sidebar-border))',
 				ring: 'hsl(var(--sidebar-ring))'
-			}
+			},
+			success: { DEFAULT: 'hsl(var(--success))', foreground: 'hsl(var(--success-foreground))' },
+			warning: { DEFAULT: 'hsl(var(--warning))', foreground: 'hsl(var(--warning-foreground))' },
+			info:    { DEFAULT: 'hsl(var(--info))',    foreground: 'hsl(var(--info-foreground))' },
+			surface: { 1: 'hsl(var(--surface-1))', 2: 'hsl(var(--surface-2))' }
 		},
   		borderRadius: {
   			lg: 'var(--radius)',
@@ -95,26 +99,31 @@ export default {
   			'2xl': 'var(--shadow-2xl)'
   		},
 		fontFamily: {
-			sans: [
-				'Open Sans',
-				'ui-sans-serif',
-				'system-ui',
-				'sans-serif'
-			],
-			serif: [
-				'Georgia',
-				'ui-serif',
-				'serif'
-			],
-			mono: [
-				'Menlo',
-				'ui-monospace',
-				'monospace'
-			],
-			signature: [
-				'Great Vibes',
-				'cursive'
-			]
+			sans: ['IBM Plex Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+			display: ['Inter Tight', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
+			serif: ['Georgia', 'ui-serif', 'serif'],
+			mono: ['JetBrains Mono', 'SF Mono', 'Menlo', 'monospace'],
+			signature: ['Inter Tight', 'sans-serif']
+		},
+		fontSize: {
+			'2xs': ['0.6875rem', { lineHeight: '0.875rem', letterSpacing: '0.02em' }],
+			xs:   ['0.75rem',   { lineHeight: '1rem' }],
+			sm:   ['0.8125rem', { lineHeight: '1.125rem' }],
+			base: ['0.875rem',  { lineHeight: '1.25rem' }],
+			md:   ['0.9375rem', { lineHeight: '1.375rem' }],
+			lg:   ['1rem',      { lineHeight: '1.5rem' }],
+			xl:   ['1.125rem',  { lineHeight: '1.625rem', letterSpacing: '-0.01em' }],
+			'2xl':['1.375rem',  { lineHeight: '1.75rem',  letterSpacing: '-0.015em' }],
+			'3xl':['1.75rem',   { lineHeight: '2rem',     letterSpacing: '-0.02em' }],
+			'4xl':['2.25rem',   { lineHeight: '2.5rem',   letterSpacing: '-0.025em' }],
+			'5xl':['3rem',      { lineHeight: '3.25rem',  letterSpacing: '-0.03em' }]
+		},
+		spacing: {
+			'7.5': '1.875rem',
+			'13':  '3.25rem',
+			'18':  '4.5rem',
+			'rail':'3.5rem',
+			'subnav':'14rem'
 		},
 		keyframes: {
 			'accordion-down': {
