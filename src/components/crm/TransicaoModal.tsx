@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -19,12 +20,15 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AgendamentoStatus,
+  CRMAgendamento,
   STATUS_LABELS,
   STATUS_ICONS,
   InteracaoTipo,
   useAgendamentoMutations,
   useInteracaoMutations,
 } from "./hooks/useCRMAgendamentos";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 interface TransicaoModalProps {
@@ -33,6 +37,7 @@ interface TransicaoModalProps {
   agendamentoId: string;
   fromStatus: AgendamentoStatus;
   toStatus: AgendamentoStatus;
+  agendamento?: CRMAgendamento;
   onSuccess?: () => void;
 }
 
@@ -42,6 +47,7 @@ export function TransicaoModal({
   agendamentoId,
   fromStatus,
   toStatus,
+  agendamento,
   onSuccess,
 }: TransicaoModalProps) {
   const [observacao, setObservacao] = useState("");
@@ -49,17 +55,40 @@ export function TransicaoModal({
   const [horaAgendamento, setHoraAgendamento] = useState("09:00");
   const [motivoPerda, setMotivoPerda] = useState("");
   const [valorOrcamento, setValorOrcamento] = useState("");
+  const [valorRealizado, setValorRealizado] = useState(() => {
+    if (agendamento?.valor_previsto) {
+      return Number(agendamento.valor_previsto).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+    return "";
+  });
+  const [formaPagamento, setFormaPagamento] = useState("");
 
   const { updateAgendamento, updateStatus } = useAgendamentoMutations();
   const { createInteracao } = useInteracaoMutations();
 
-  const getTransitionConfig = (): { 
-    title: string; 
-    description: string; 
+  const isRealizadoTransition = fromStatus === "confirmado" && toStatus === "realizado";
+
+  const { data: formasPagamento } = useQuery({
+    queryKey: ["formas-pagamento"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("formas_pagamento")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: isRealizadoTransition,
+  });
+
+  const getTransitionConfig = (): {
+    title: string;
+    description: string;
     showObservacao?: boolean;
     showValor?: boolean;
     showAgendamento?: boolean;
     showMotivo?: boolean;
+    showRealizado?: boolean;
     autoConfirm?: boolean;
     interacaoTipo: InteracaoTipo;
   } => {
@@ -107,11 +136,12 @@ export function TransicaoModal({
     }
 
     // Confirmado → Realizado
-    if (fromStatus === "confirmado" && toStatus === "realizado") {
+    if (isRealizadoTransition) {
       return {
         title: "Registrar Realização",
-        description: "O procedimento foi realizado com sucesso.",
+        description: "O procedimento foi realizado. Informe os dados financeiros para lançamento automático no fluxo de caixa.",
         showObservacao: true,
+        showRealizado: true,
         interacaoTipo: "status_change",
       };
     }
@@ -147,6 +177,11 @@ export function TransicaoModal({
 
   const config = getTransitionConfig();
 
+  const parseCurrencyValue = (formatted: string): number => {
+    const clean = formatted.replace(/[^\d,]/g, "").replace(",", ".");
+    return parseFloat(clean) || 0;
+  };
+
   const handleSubmit = async () => {
     try {
       const updates: Record<string, unknown> = { status: toStatus };
@@ -166,11 +201,49 @@ export function TransicaoModal({
         updates.valor_previsto = parseFloat(valorOrcamento.replace(/\D/g, "")) / 100;
       }
 
+      if (config.showRealizado) {
+        const vr = parseCurrencyValue(valorRealizado);
+        if (vr > 0) {
+          updates.valor_realizado = vr;
+        }
+      }
+
       // Atualiza o agendamento
       await updateAgendamento.mutateAsync({
         id: agendamentoId,
         ...updates,
       });
+
+      // Integração financeira: lançamento no fluxo de caixa quando realizado
+      if (config.showRealizado) {
+        const vr = parseCurrencyValue(valorRealizado);
+        const pacienteNome = agendamento?.paciente?.nome || "Paciente";
+        const tratamentoNome = agendamento?.tratamento?.nome || "Atendimento";
+
+        const lancamento: Record<string, unknown> = {
+          tipo: "receita",
+          descricao: `Procedimento - ${tratamentoNome}`,
+          valor: vr || agendamento?.valor_previsto || 0,
+          data_lancamento: format(new Date(), "yyyy-MM-dd"),
+          status: "pago",
+          tratamento_id: agendamento?.tratamento_id || null,
+          observacoes: `Paciente: ${pacienteNome}. ${observacao}`.trim(),
+        };
+
+        if (formaPagamento) {
+          lancamento.forma_pagamento_id = formaPagamento;
+        }
+
+        const { error: finError } = await supabase.from("td_fluxo_de_caixa").insert(lancamento);
+        if (finError) {
+          console.error("Erro ao lançar no fluxo de caixa:", finError);
+          toast({
+            title: "Aviso",
+            description: "Status atualizado, mas houve erro ao lançar no fluxo de caixa: " + finError.message,
+            variant: "destructive",
+          });
+        }
+      }
 
       // Sempre registra a interação para documentar a mudança
       const interacaoObservacao = buildInteracaoObservacao();
@@ -182,18 +255,20 @@ export function TransicaoModal({
 
       toast({
         title: "Status atualizado!",
-        description: `Movido para ${STATUS_LABELS[toStatus]}`,
+        description: `Movido para ${STATUS_LABELS[toStatus]}${config.showRealizado ? " e lançamento financeiro criado." : "."}`,
       });
 
       onOpenChange(false);
       onSuccess?.();
-      
+
       // Reset form
       setObservacao("");
       setDataAgendamento(undefined);
       setHoraAgendamento("09:00");
       setMotivoPerda("");
       setValorOrcamento("");
+      setValorRealizado("");
+      setFormaPagamento("");
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({ title: "Erro ao atualizar", description: errorMessage, variant: "destructive" });
@@ -202,31 +277,40 @@ export function TransicaoModal({
 
   const buildInteracaoObservacao = () => {
     const parts: string[] = [];
-    
-    // Adiciona info da transição
+
     parts.push(`Status alterado de "${STATUS_LABELS[fromStatus]}" para "${STATUS_LABELS[toStatus]}"`);
-    
-    // Info específica por tipo
+
     if (config.showValor && valorOrcamento) {
       parts.push(`Valor do orçamento: ${valorOrcamento}`);
     }
-    
+
     if (config.showAgendamento && dataAgendamento) {
       parts.push(`Agendado para: ${format(dataAgendamento, "dd/MM/yyyy", { locale: ptBR })} às ${horaAgendamento}`);
     }
-    
+
     if (config.showMotivo && motivoPerda) {
       parts.push(`Motivo: ${motivoPerda}`);
     }
-    
+
+    if (config.showRealizado && valorRealizado) {
+      parts.push(`Valor realizado: ${valorRealizado}`);
+    }
+
     if (observacao) {
       parts.push(`Obs: ${observacao}`);
     }
-    
+
     return parts.join(". ");
   };
 
   const isLoading = updateAgendamento.isPending || updateStatus.isPending;
+
+  const formatCurrencyInput = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) return "";
+    const value = parseInt(digits) / 100;
+    return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -257,6 +341,38 @@ export function TransicaoModal({
                 }}
               />
             </div>
+          )}
+
+          {config.showRealizado && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="valorRealizado">Valor Realizado</Label>
+                <Input
+                  id="valorRealizado"
+                  placeholder="R$ 0,00"
+                  value={valorRealizado}
+                  onChange={(e) => setValorRealizado(formatCurrencyInput(e.target.value))}
+                />
+                {agendamento?.valor_previsto && (
+                  <p className="text-xs text-muted-foreground">
+                    Valor previsto: {Number(agendamento.valor_previsto).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Forma de Pagamento</Label>
+                <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formasPagamento?.map((fp: any) => (
+                      <SelectItem key={fp.id} value={fp.id}>{fp.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
 
           {config.showAgendamento && (

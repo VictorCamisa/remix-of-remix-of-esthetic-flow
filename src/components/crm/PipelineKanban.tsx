@@ -43,6 +43,7 @@ export function PipelineKanban({
     agendamentoId: string;
     fromStatus: AgendamentoStatus;
     toStatus: AgendamentoStatus;
+    agendamento?: CRMAgendamento;
   } | null>(null);
 
   const [interacaoModal, setInteracaoModal] = useState<{
@@ -77,6 +78,7 @@ export function PipelineKanban({
       agendamentoId: agendamento.id,
       fromStatus: agendamento.status as AgendamentoStatus,
       toStatus,
+      agendamento,
     });
   };
 
@@ -151,6 +153,7 @@ export function PipelineKanban({
         agendamentoId,
         fromStatus: agendamento.status as AgendamentoStatus,
         toStatus: newStatus,
+        agendamento,
       });
     }
 
@@ -300,6 +303,7 @@ export function PipelineKanban({
           agendamentoId={transicaoModal.agendamentoId}
           fromStatus={transicaoModal.fromStatus}
           toStatus={transicaoModal.toStatus}
+          agendamento={transicaoModal.agendamento}
           onSuccess={() => setTransicaoModal(null)}
         />
       )}
