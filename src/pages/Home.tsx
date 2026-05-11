@@ -6,71 +6,215 @@ import {
   ArrowRight,
   Sparkles,
   Settings,
-  TrendingUp,
-  Shield,
-  Zap,
   ClipboardList,
+  Calendar,
+  FileSignature,
+  Kanban,
+  TrendingUp,
+  Clock,
+  Activity,
+  MessageCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-interface ModuleCardProps {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  href: string;
-  features: string[];
-  gradient: string;
-  accentColor: string;
+// ─── Live KPIs via Supabase ─────────────────────────────────────
+function useDashboardKPIs() {
+  const today = new Date().toISOString().split("T")[0];
+
+  const agendamentosHoje = useQuery({
+    queryKey: ["home-agendamentos-hoje", today],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("crm_agendamentos")
+        .select("*", { count: "exact", head: true })
+        .gte("data_agendamento", today + "T00:00:00")
+        .lte("data_agendamento", today + "T23:59:59");
+      return count ?? 0;
+    },
+  });
+
+  const contratosPendentes = useQuery({
+    queryKey: ["home-contratos-pendentes"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("contratos_paciente")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pendente");
+      return count ?? 0;
+    },
+  });
+
+  const pacientesAtivos = useQuery({
+    queryKey: ["home-pacientes"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("pacientes")
+        .select("*", { count: "exact", head: true });
+      return count ?? 0;
+    },
+  });
+
+  const receitaMes = useQuery({
+    queryKey: ["home-receita-mes"],
+    queryFn: async () => {
+      const inicio = new Date();
+      inicio.setDate(1);
+      inicio.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from("td_fluxo_de_caixa")
+        .select("valor")
+        .eq("tipo", "receita")
+        .eq("status", "pago")
+        .gte("data_lancamento", inicio.toISOString().split("T")[0]);
+      const total = (data ?? []).reduce((s, r) => s + (r.valor ?? 0), 0);
+      return total;
+    },
+  });
+
+  return { agendamentosHoje, contratosPendentes, pacientesAtivos, receitaMes };
 }
 
-const modules: ModuleCardProps[] = [
+// ─── Module Cards ───────────────────────────────────────────────
+const modules = [
   {
     title: "Financeiro",
-    description: "Controle completo de fluxo de caixa, DRE e análises",
+    description: "Fluxo de caixa, DRE, orçamentos e relatórios financeiros",
     icon: DollarSign,
     href: "/financeiro",
-    features: ["Dashboard", "Lançamentos", "DRE", "Relatórios"],
-    gradient: "from-emerald-500/20 via-emerald-500/5 to-transparent",
-    accentColor: "text-emerald-500 dark:text-emerald-400",
+    features: ["Lançamentos", "DRE", "Relatórios"],
   },
   {
     title: "Comercial",
-    description: "Pipeline de vendas e gestão de pacientes",
+    description: "Pipeline de vendas, agendamentos e gestão de pacientes",
     icon: Users,
     href: "/crm",
-    features: ["Pipeline", "Agendamentos", "Pacientes"],
-    gradient: "from-cyan-500/20 via-cyan-500/5 to-transparent",
-    accentColor: "text-cyan-500 dark:text-cyan-400",
+    features: ["Pipeline", "Agendamentos", "WhatsApp"],
   },
   {
-    title: "Administrativo",
-    description: "Gestão de usuários, LGPD e auditoria",
-    icon: Building2,
-    href: "/admin",
-    features: ["Usuários", "LGPD", "Auditoria"],
-    gradient: "from-violet-500/20 via-violet-500/5 to-transparent",
-    accentColor: "text-violet-500 dark:text-violet-400",
-  },
-  {
-    title: "Business Intelligence",
-    description: "Análises avançadas e indicadores de performance",
-    icon: BarChart3,
-    href: "/bi",
-    features: ["LTV/CAC", "Marketing", "Projeções"],
-    gradient: "from-amber-500/20 via-amber-500/5 to-transparent",
-    accentColor: "text-amber-500 dark:text-amber-400",
-  },
-  {
-    title: "Gestão Operacional",
-    description: "Controle macro de todos os processos clínicos",
+    title: "Gestão Clínica",
+    description: "Contratos, anamneses, prontuários e planos de tratamento",
     icon: ClipboardList,
     href: "/gestao",
     features: ["Contratos", "Anamneses", "Prontuários"],
-    gradient: "from-rose-500/20 via-rose-500/5 to-transparent",
-    accentColor: "text-rose-500 dark:text-rose-400",
+  },
+  {
+    title: "Business Intelligence",
+    description: "Análises, indicadores de performance e projeções",
+    icon: BarChart3,
+    href: "/bi",
+    features: ["LTV/CAC", "Marketing", "Projeções"],
+  },
+  {
+    title: "Administrativo",
+    description: "Usuários, permissões, LGPD e auditoria do sistema",
+    icon: Building2,
+    href: "/admin",
+    features: ["Usuários", "LGPD", "Auditoria"],
   },
 ];
+
+// ─── Quick Actions ───────────────────────────────────────────────
+const quickActions = [
+  {
+    href: "/crm/pipeline",
+    icon: Kanban,
+    label: "Pipeline",
+    description: "Ver funil de vendas",
+  },
+  {
+    href: "/crm/agendamentos",
+    icon: Calendar,
+    label: "Agenda",
+    description: "Gerenciar agendamentos",
+  },
+  {
+    href: "/gestao/contratos",
+    icon: FileSignature,
+    label: "Contratos",
+    description: "Assinar e emitir contratos",
+  },
+  {
+    href: "/crm/whatsapp",
+    icon: MessageCircle,
+    label: "WhatsApp",
+    description: "Atender pacientes",
+  },
+];
+
+// ─── Components ──────────────────────────────────────────────────
+function KPICard({
+  label,
+  value,
+  icon: Icon,
+  loading,
+  format: fmt,
+  highlight,
+}: {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  loading: boolean;
+  format?: "number" | "currency";
+  highlight?: boolean;
+}) {
+  const displayed =
+    loading ? "—" :
+    fmt === "currency"
+      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value)
+      : value.toString();
+
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col gap-3 rounded-2xl p-5 overflow-hidden",
+        "bg-card border transition-all duration-300",
+        "hover:shadow-md hover:-translate-y-0.5",
+        highlight
+          ? "border-primary/20 dark:border-primary/25"
+          : "border-border/50 dark:border-border/30"
+      )}
+    >
+      {/* Top accent line for highlighted cards */}
+      {highlight && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
+      )}
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground font-medium">{label}</p>
+        <div
+          className={cn(
+            "h-9 w-9 rounded-xl flex items-center justify-center",
+            highlight
+              ? "bg-primary/10 dark:bg-primary/15"
+              : "bg-muted/60 dark:bg-muted/40"
+          )}
+        >
+          <Icon className={cn("h-4 w-4", highlight ? "text-primary" : "text-muted-foreground")} />
+        </div>
+      </div>
+
+      <div>
+        {loading ? (
+          <div className="h-7 w-20 rounded-lg skeleton-shimmer" />
+        ) : (
+          <p
+            className={cn(
+              "text-2xl font-bold tracking-tight",
+              highlight ? "text-primary" : "text-foreground"
+            )}
+          >
+            {displayed}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ModuleCard({
   title,
@@ -78,84 +222,64 @@ function ModuleCard({
   icon: Icon,
   href,
   features,
-  gradient,
-  accentColor,
-}: ModuleCardProps) {
+}: (typeof modules)[0]) {
   return (
     <Link
       to={href}
       className={cn(
-        "group relative flex flex-col rounded-2xl p-6 h-full overflow-hidden",
-        "bg-card/80 dark:bg-card/90",
-        "border border-border/50 dark:border-border/40",
-        "transition-all duration-300 ease-out",
-        "hover:shadow-lg dark:hover:shadow-xl",
-        "hover:border-primary/20 dark:hover:border-primary/30",
-        "hover:-translate-y-1.5"
+        "group relative flex flex-col rounded-2xl p-6 overflow-hidden",
+        "bg-card border border-border/50 dark:border-border/30",
+        "transition-all duration-300",
+        "hover:shadow-lg hover:border-primary/20 dark:hover:border-primary/30",
+        "hover:-translate-y-1"
       )}
     >
-      {/* Gradient Background */}
-      <div
-        className={cn(
-          "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100",
-          "transition-opacity duration-500",
-          gradient
-        )}
-      />
+      {/* Subtle gradient on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:to-transparent transition-all duration-500" />
 
-      {/* Glow Effect (dark mode only) - subtle */}
-      <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-primary/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 dark:block hidden" />
-
-      {/* Content */}
       <div className="relative z-10">
-        {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div
             className={cn(
-              "h-12 w-12 rounded-xl flex items-center justify-center",
-              "bg-primary/10 dark:bg-primary/15",
-              "border border-primary/10 dark:border-primary/20",
-              "group-hover:scale-105 transition-transform duration-300"
+              "h-11 w-11 rounded-xl flex items-center justify-center",
+              "bg-primary/10 dark:bg-primary/15 border border-primary/10",
+              "group-hover:bg-primary/15 group-hover:scale-105 transition-all duration-300"
             )}
           >
-            <Icon className={cn("h-6 w-6", accentColor)} />
+            <Icon className="h-5 w-5 text-primary" />
           </div>
           <div
             className={cn(
-              "h-10 w-10 rounded-xl flex items-center justify-center",
-              "bg-muted/50 dark:bg-muted/30",
-              "opacity-0 group-hover:opacity-100",
+              "h-8 w-8 rounded-xl flex items-center justify-center",
+              "bg-muted/50 opacity-0 group-hover:opacity-100",
               "translate-x-2 group-hover:translate-x-0",
               "transition-all duration-300"
             )}
           >
-            <ArrowRight className="h-5 w-5 text-primary" />
+            <ArrowRight className="h-4 w-4 text-primary" />
           </div>
         </div>
 
-        {/* Title & Description */}
-        <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors duration-300">
+        <h3 className="text-base font-semibold text-foreground mb-1.5 group-hover:text-primary transition-colors duration-200">
           {title}
         </h3>
-        <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+        <p className="text-[13px] text-muted-foreground mb-4 leading-relaxed">
           {description}
         </p>
 
-        {/* Features */}
-        <div className="flex flex-wrap gap-2 mt-auto">
-          {features.map((feature) => (
+        <div className="flex flex-wrap gap-1.5">
+          {features.map((f) => (
             <span
-              key={feature}
+              key={f}
               className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-lg",
-                "bg-muted/60 dark:bg-muted/40",
-                "text-muted-foreground",
-                "border border-border/30 dark:border-border/20",
-                "group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20",
-                "transition-all duration-300"
+                "px-2.5 py-1 text-[11px] font-medium rounded-lg",
+                "bg-muted/60 dark:bg-muted/40 text-muted-foreground",
+                "border border-border/30",
+                "group-hover:bg-primary/8 group-hover:text-primary group-hover:border-primary/15",
+                "transition-all duration-200"
               )}
             >
-              {feature}
+              {f}
             </span>
           ))}
         </div>
@@ -164,195 +288,198 @@ function ModuleCard({
   );
 }
 
-function QuickActionCard({
-  href,
-  icon: Icon,
-  title,
-  description,
-  variant = "default",
-}: {
-  href: string;
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  variant?: "default" | "primary";
-}) {
-  const isPrimary = variant === "primary";
-
+function QuickAction({ href, icon: Icon, label, description }: (typeof quickActions)[0]) {
   return (
     <Link
       to={href}
       className={cn(
-        "group relative flex items-center gap-5 p-5 rounded-2xl overflow-hidden",
-        "transition-all duration-500 ease-out",
-        isPrimary
-          ? [
-              "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent",
-              "dark:from-primary/20 dark:via-primary/10 dark:to-primary/5",
-              "border border-primary/20 dark:border-primary/30",
-              "hover:border-primary/40 dark:hover:border-primary/50",
-              "hover:shadow-lg hover:shadow-primary/10",
-              "dark:hover:shadow-xl dark:hover:shadow-primary/20",
-            ]
-          : [
-              "bg-card/80 dark:bg-card/40",
-              "border border-border/50 dark:border-border/30",
-              "backdrop-blur-sm",
-              "hover:border-border dark:hover:border-border/50",
-              "hover:shadow-lg dark:hover:shadow-xl",
-            ],
-        "hover:-translate-y-1"
+        "group flex items-center gap-4 rounded-xl p-4",
+        "bg-card border border-border/50 dark:border-border/30",
+        "hover:border-primary/20 hover:shadow-sm hover:bg-primary/[0.02]",
+        "transition-all duration-200"
       )}
     >
-      {/* Icon Container */}
-      <div
-        className={cn(
-          "h-14 w-14 rounded-2xl flex items-center justify-center shrink-0",
-          "transition-all duration-500",
-          isPrimary
-            ? [
-                "bg-primary/10 dark:bg-primary/20",
-                "group-hover:bg-primary/20 dark:group-hover:bg-primary/30",
-                "group-hover:scale-110",
-              ]
-            : [
-                "bg-muted/60 dark:bg-muted/40",
-                "group-hover:bg-primary/10 dark:group-hover:bg-primary/20",
-                "group-hover:scale-110",
-              ]
-        )}
-      >
-        <Icon
-          className={cn(
-            "h-6 w-6 transition-colors duration-300",
-            isPrimary
-              ? "text-primary"
-              : "text-muted-foreground group-hover:text-primary"
-          )}
-        />
+      <div className="h-10 w-10 rounded-xl bg-primary/10 dark:bg-primary/15 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
+        <Icon className="h-4.5 w-4.5 text-primary h-5 w-5" />
       </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <h3
-          className={cn(
-            "font-semibold text-foreground mb-1",
-            "group-hover:text-primary transition-colors duration-300"
-          )}
-        >
-          {title}
-        </h3>
-        <p className="text-sm text-muted-foreground truncate">{description}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{label}</p>
+        <p className="text-xs text-muted-foreground truncate">{description}</p>
       </div>
-
-      {/* Arrow */}
-      <ArrowRight
-        className={cn(
-          "h-5 w-5 shrink-0",
-          "text-muted-foreground/50 group-hover:text-primary",
-          "translate-x-0 group-hover:translate-x-1",
-          "transition-all duration-300"
-        )}
-      />
+      <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
     </Link>
   );
 }
 
+// ─── Page ───────────────────────────────────────────────────────
 export default function Home() {
+  const now = new Date();
+  const { agendamentosHoje, contratosPendentes, pacientesAtivos, receitaMes } =
+    useDashboardKPIs();
+
+  const hora = now.getHours();
+  const saudacao =
+    hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+
+  const dataFormatada = format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const dataCapitalizada =
+    dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
+
   return (
     <div className="relative min-h-full">
-      {/* Background Effects */}
+      {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Light mode gradient */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl dark:hidden" />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/3 rounded-full blur-3xl dark:hidden" />
-
-        {/* Dark mode - minimal accent */}
-        <div className="hidden dark:block absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-primary/[0.03] rounded-full blur-[80px]" />
+        <div className="absolute top-0 left-1/4 w-96 h-64 bg-primary/[0.04] rounded-full blur-3xl dark:bg-primary/[0.03]" />
+        <div className="absolute bottom-1/3 right-1/4 w-72 h-72 bg-primary/[0.03] rounded-full blur-3xl dark:hidden" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 space-y-10 animate-fade-in py-2">
-        {/* Header */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-1 w-12 rounded-full bg-gradient-to-r from-primary to-primary/50" />
-            <span className="text-xs font-semibold uppercase tracking-widest text-primary">
-              Dashboard
+      <div className="relative z-10 space-y-10 animate-fade-in">
+        {/* ── Hero Section ── */}
+        <div className="space-y-1">
+          {/* Brand mark */}
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="gold-bar w-10" />
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-primary/80">
+              ÁUREA Clinic
             </span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-            Bem-vindo ao Sistema
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl">
-            Gerencie sua clínica de forma inteligente. Selecione um módulo para
-            começar.
-          </p>
-        </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            {
-              icon: TrendingUp,
-              label: "Receita Mensal",
-              value: "Módulo Financeiro",
-            },
-            { icon: Users, label: "Pacientes Ativos", value: "Módulo CRM" },
-            { icon: Shield, label: "Conformidade", value: "Módulo Admin" },
-            { icon: Zap, label: "Insights", value: "Módulo BI" },
-          ].map((stat, i) => (
-            <div
-              key={i}
-              className={cn(
-                "p-4 rounded-xl",
-                "bg-card/60 dark:bg-card/30",
-                "border border-border/40 dark:border-border/20",
-                "backdrop-blur-sm"
-              )}
-            >
-              <stat.icon className="h-5 w-5 text-primary mb-2" />
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-              <p className="text-sm font-medium text-foreground mt-0.5">
-                {stat.value}
-              </p>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <h1 className="text-signature text-5xl md:text-6xl mb-1">
+                {saudacao}, Dra. Taysa
+              </h1>
+              <p className="text-muted-foreground text-sm">{dataCapitalizada}</p>
             </div>
-          ))}
+
+            <div className="flex items-center gap-2 text-muted-foreground/60">
+              <Activity className="h-4 w-4 text-success" />
+              <span className="text-xs">Sistema operacional</span>
+            </div>
+          </div>
         </div>
 
-        {/* Modules Grid */}
+        {/* ── KPI Cards ── */}
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-5">
-            Módulos Principais
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">
+            Hoje
           </h2>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {modules.map((module) => (
-              <ModuleCard key={module.title} {...module} />
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <KPICard
+              label="Agendamentos Hoje"
+              value={agendamentosHoje.data ?? 0}
+              icon={Calendar}
+              loading={agendamentosHoje.isLoading}
+              highlight
+            />
+            <KPICard
+              label="Contratos Pendentes"
+              value={contratosPendentes.data ?? 0}
+              icon={FileSignature}
+              loading={contratosPendentes.isLoading}
+            />
+            <KPICard
+              label="Pacientes Cadastrados"
+              value={pacientesAtivos.data ?? 0}
+              icon={Users}
+              loading={pacientesAtivos.isLoading}
+            />
+            <KPICard
+              label="Receita do Mês"
+              value={receitaMes.data ?? 0}
+              icon={TrendingUp}
+              loading={receitaMes.isLoading}
+              format="currency"
+              highlight
+            />
+          </div>
+        </div>
+
+        {/* ── Quick Actions ── */}
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 mb-3">
+            Ações rápidas
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {quickActions.map((a) => (
+              <QuickAction key={a.href} {...a} />
             ))}
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* ── Modules ── */}
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-5">
-            Ações Rápidas
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <QuickActionCard
-              href="/assistente-ia"
-              icon={Sparkles}
-              title="Assistente IA"
-              description="Tire dúvidas com inteligência artificial"
-              variant="primary"
-            />
-            <QuickActionCard
-              href="/configuracoes"
-              icon={Settings}
-              title="Configurações"
-              description="Categorias, contas e formas de pagamento"
-            />
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Módulos
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
+            {modules.map((m) => (
+              <ModuleCard key={m.title} {...m} />
+            ))}
           </div>
         </div>
+
+        {/* ── IA + Configurações ── */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Link
+            to="/assistente-ia"
+            className={cn(
+              "group relative flex items-center gap-5 p-5 rounded-2xl overflow-hidden",
+              "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent",
+              "dark:from-primary/15 dark:via-primary/8 dark:to-primary/3",
+              "border border-primary/15 dark:border-primary/20",
+              "hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10",
+              "transition-all duration-300 hover:-translate-y-0.5"
+            )}
+          >
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors duration-500" />
+            <div className="h-13 w-13 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 h-12 w-12">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0 relative z-10">
+              <div className="flex items-center gap-2 mb-0.5">
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                  Assistente IA
+                </h3>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-semibold">
+                  IA
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Tire dúvidas, analise dados e gere relatórios com IA
+              </p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-primary/50 group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
+          </Link>
+
+          <Link
+            to="/configuracoes"
+            className={cn(
+              "group flex items-center gap-5 p-5 rounded-2xl",
+              "bg-card border border-border/50 dark:border-border/30",
+              "hover:border-border hover:shadow-sm",
+              "transition-all duration-200 hover:-translate-y-0.5"
+            )}
+          >
+            <div className="h-12 w-12 rounded-2xl bg-muted/60 dark:bg-muted/40 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors duration-200">
+              <Settings className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors mb-0.5">
+                Configurações
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Categorias, formas de pagamento e preferências
+              </p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+          </Link>
+        </div>
+
+        {/* Bottom spacer */}
+        <div className="h-4" />
       </div>
     </div>
   );
