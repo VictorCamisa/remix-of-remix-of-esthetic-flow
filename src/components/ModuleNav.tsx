@@ -25,6 +25,7 @@ import {
   Camera,
   Pill,
   Stethoscope,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,13 +38,11 @@ interface NavItem {
 interface ModuleConfig {
   basePath: string;
   items: NavItem[];
-  color: string;
 }
 
 const moduleConfigs: Record<string, ModuleConfig> = {
   financeiro: {
     basePath: "/financeiro",
-    color: "emerald",
     items: [
       { label: "Dashboard", to: "/financeiro", icon: Home },
       { label: "Diário de Caixa", to: "/financeiro/diario-caixa", icon: FileText },
@@ -53,16 +52,16 @@ const moduleConfigs: Record<string, ModuleConfig> = {
       { label: "Estoque", to: "/financeiro/estoque", icon: Package },
       { label: "Fornecedores", to: "/financeiro/fornecedores", icon: Users },
       { label: "DRE", to: "/financeiro/dre", icon: BarChart3 },
-      { label: "Budget", to: "/financeiro/orcamento", icon: Target },
+      { label: "Orçamento", to: "/financeiro/orcamento", icon: Target },
       { label: "Relatórios", to: "/financeiro/relatorios", icon: FileBarChart },
     ],
   },
   crm: {
     basePath: "/crm",
-    color: "cyan",
     items: [
       { label: "Pipeline", to: "/crm/pipeline", icon: Kanban },
       { label: "Agendamentos", to: "/crm/agendamentos", icon: Calendar },
+      { label: "WhatsApp", to: "/crm/whatsapp", icon: MessageCircle },
       { label: "Pós-venda", to: "/crm/pos-venda", icon: Heart },
       { label: "Leads", to: "/crm/leads", icon: Users },
       { label: "Pacientes", to: "/crm/pacientes", icon: Users },
@@ -70,7 +69,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
   },
   admin: {
     basePath: "/admin",
-    color: "violet",
     items: [
       { label: "Usuários", to: "/admin?tab=usuarios", icon: Users },
       { label: "LGPD", to: "/admin?tab=lgpd", icon: Lock },
@@ -80,7 +78,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
   },
   bi: {
     basePath: "/bi",
-    color: "amber",
     items: [
       { label: "Dashboard", to: "/bi", icon: BarChart3 },
       { label: "LTV / CAC", to: "/bi?tab=ltv-cac", icon: Users },
@@ -92,7 +89,6 @@ const moduleConfigs: Record<string, ModuleConfig> = {
   },
   gestao: {
     basePath: "/gestao",
-    color: "rose",
     items: [
       { label: "Dashboard", to: "/gestao", icon: Home },
       { label: "Planos de Tratamento", to: "/gestao/planos-tratamento", icon: FileText },
@@ -107,7 +103,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
 };
 
 function getActiveModule(pathname: string): ModuleConfig | null {
-  for (const [key, config] of Object.entries(moduleConfigs)) {
+  for (const config of Object.values(moduleConfigs)) {
     if (pathname.startsWith(config.basePath)) {
       return config;
     }
@@ -122,14 +118,16 @@ export function ModuleNav() {
   if (!currentModule) return null;
 
   return (
-    <div className={cn(
-      "border-b sticky top-0 z-10 overflow-hidden",
-      "bg-background/80 dark:bg-background/60",
-      "backdrop-blur-xl",
-      "border-border/40 dark:border-border/20"
-    )}>
+    <div
+      className={cn(
+        "border-b sticky top-0 z-10 overflow-hidden",
+        "bg-background/80 dark:bg-background/60",
+        "backdrop-blur-xl",
+        "border-border/40 dark:border-border/20"
+      )}
+    >
       <ScrollArea className="w-full max-w-full">
-        <nav className="flex items-center gap-1.5 px-6 py-3">
+        <nav className="flex items-center gap-1 px-5 py-2.5">
           {currentModule.items.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -145,25 +143,19 @@ export function ModuleNav() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium",
-                  "transition-all duration-300 whitespace-nowrap",
-                  "group",
+                  "flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-medium",
+                  "transition-all duration-200 whitespace-nowrap group",
                   isActive
-                    ? [
-                        "bg-primary text-primary-foreground",
-                        "shadow-md shadow-primary/20 dark:shadow-primary/30",
-                      ]
-                    : [
-                        "text-muted-foreground",
-                        "hover:text-foreground",
-                        "hover:bg-muted/60 dark:hover:bg-muted/40",
-                      ]
+                    ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60 dark:hover:bg-muted/40"
                 )}
               >
-                <Icon className={cn(
-                  "h-4 w-4 transition-transform duration-300",
-                  !isActive && "group-hover:scale-110"
-                )} />
+                <Icon
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-200",
+                    !isActive && "group-hover:scale-110"
+                  )}
+                />
                 <span>{item.label}</span>
               </Link>
             );

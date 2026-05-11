@@ -3,9 +3,20 @@ import { Link, useLocation } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserAuthMenu } from "@/components/UserAuthMenu";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import logoTaysa from "@/assets/logo-dra-taysa.png";
@@ -23,7 +34,6 @@ import {
   Kanban,
   Calendar,
   Heart,
-  XCircle,
   Building2,
   Lock,
   History,
@@ -52,7 +62,6 @@ interface NavModule {
   icon: LucideIcon;
   basePath: string;
   items: NavItem[];
-  color: string;
 }
 
 const modules: NavModule[] = [
@@ -60,7 +69,6 @@ const modules: NavModule[] = [
     label: "Financeiro",
     icon: DollarSign,
     basePath: "/financeiro",
-    color: "text-emerald-500",
     items: [
       { label: "Dashboard", to: "/financeiro", icon: Home },
       { label: "Diário de Caixa", to: "/financeiro/diario-caixa", icon: FileText },
@@ -70,7 +78,7 @@ const modules: NavModule[] = [
       { label: "Estoque", to: "/financeiro/estoque", icon: Package },
       { label: "Fornecedores", to: "/financeiro/fornecedores", icon: Users },
       { label: "DRE", to: "/financeiro/dre", icon: BarChart3 },
-      { label: "Budget", to: "/financeiro/orcamento", icon: Target },
+      { label: "Orçamento", to: "/financeiro/orcamento", icon: Target },
       { label: "Relatórios", to: "/financeiro/relatorios", icon: FileBarChart },
     ],
   },
@@ -78,47 +86,19 @@ const modules: NavModule[] = [
     label: "Comercial",
     icon: Users,
     basePath: "/crm",
-    color: "text-cyan-500",
     items: [
       { label: "Pipeline", to: "/crm/pipeline", icon: Kanban },
       { label: "Agendamentos", to: "/crm/agendamentos", icon: Calendar },
       { label: "WhatsApp", to: "/crm/whatsapp", icon: MessageCircle },
       { label: "Pós-venda", to: "/crm/pos-venda", icon: Heart },
-      { label: "Leads Perdidos", to: "/crm/perdidos", icon: XCircle },
+      { label: "Leads", to: "/crm/leads", icon: Users },
       { label: "Pacientes", to: "/crm/pacientes", icon: Users },
     ],
   },
   {
-    label: "Administrativo",
-    icon: Building2,
-    basePath: "/admin",
-    color: "text-violet-500",
-    items: [
-      { label: "Usuários", to: "/admin?tab=usuarios", icon: Users },
-      { label: "LGPD", to: "/admin?tab=lgpd", icon: Lock },
-      { label: "Documentos", to: "/admin?tab=documentos", icon: FileText },
-      { label: "Auditoria", to: "/admin?tab=auditoria", icon: History },
-    ],
-  },
-  {
-    label: "BI",
-    icon: BarChart3,
-    basePath: "/bi",
-    color: "text-amber-500",
-    items: [
-      { label: "Dashboard BI", to: "/bi", icon: BarChart3 },
-      { label: "LTV / CAC", to: "/bi?tab=ltv-cac", icon: Users },
-      { label: "Marketing", to: "/bi?tab=marketing", icon: Target },
-      { label: "Tratamentos", to: "/bi?tab=tratamentos", icon: PieChart },
-      { label: "Sazonalidade", to: "/bi?tab=sazonalidade", icon: Calendar },
-      { label: "Projeções", to: "/bi?tab=projecoes", icon: LineChart },
-    ],
-  },
-  {
-    label: "Gestão Operacional",
+    label: "Gestão Clínica",
     icon: ClipboardList,
     basePath: "/gestao",
-    color: "text-rose-500",
     items: [
       { label: "Dashboard", to: "/gestao", icon: Home },
       { label: "Planos de Tratamento", to: "/gestao/planos-tratamento", icon: FileText },
@@ -130,6 +110,30 @@ const modules: NavModule[] = [
       { label: "Prontuários", to: "/gestao/prontuarios", icon: Stethoscope },
     ],
   },
+  {
+    label: "Business Intelligence",
+    icon: BarChart3,
+    basePath: "/bi",
+    items: [
+      { label: "Dashboard BI", to: "/bi", icon: BarChart3 },
+      { label: "LTV / CAC", to: "/bi?tab=ltv-cac", icon: Users },
+      { label: "Marketing", to: "/bi?tab=marketing", icon: Target },
+      { label: "Tratamentos", to: "/bi?tab=tratamentos", icon: PieChart },
+      { label: "Sazonalidade", to: "/bi?tab=sazonalidade", icon: Calendar },
+      { label: "Projeções", to: "/bi?tab=projecoes", icon: LineChart },
+    ],
+  },
+  {
+    label: "Administrativo",
+    icon: Building2,
+    basePath: "/admin",
+    items: [
+      { label: "Usuários", to: "/admin?tab=usuarios", icon: Users },
+      { label: "LGPD", to: "/admin?tab=lgpd", icon: Lock },
+      { label: "Documentos", to: "/admin?tab=documentos", icon: FileText },
+      { label: "Auditoria", to: "/admin?tab=auditoria", icon: History },
+    ],
+  },
 ];
 
 const globalItems: NavItem[] = [
@@ -137,7 +141,13 @@ const globalItems: NavItem[] = [
   { label: "Configurações", to: "/configuracoes", icon: Settings },
 ];
 
-function MobileNavModule({ module, onClose }: { module: NavModule; onClose: () => void }) {
+function MobileNavModule({
+  module,
+  onClose,
+}: {
+  module: NavModule;
+  onClose: () => void;
+}) {
   const location = useLocation();
   const isActive = location.pathname.startsWith(module.basePath);
   const [isOpen, setIsOpen] = useState(isActive);
@@ -147,31 +157,33 @@ function MobileNavModule({ module, onClose }: { module: NavModule; onClose: () =
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger
         className={cn(
-          "flex w-full items-center justify-between rounded-xl px-4 py-3",
-          "text-sm font-medium transition-all duration-300",
+          "flex w-full items-center justify-between rounded-xl px-3 py-2.5",
+          "text-sm font-medium transition-all duration-200",
           isActive
             ? "bg-primary/10 text-foreground"
             : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
         )}
       >
         <div className="flex items-center gap-3">
-          <div className={cn(
-            "h-9 w-9 rounded-lg flex items-center justify-center",
-            isActive ? "bg-primary/20" : "bg-muted/60"
-          )}>
-            <Icon className={cn("h-4 w-4", isActive && module.color)} />
+          <div
+            className={cn(
+              "h-8 w-8 rounded-lg flex items-center justify-center",
+              isActive ? "bg-primary/15" : "bg-muted/60"
+            )}
+          >
+            <Icon className={cn("h-4 w-4", isActive && "text-primary")} />
           </div>
           <span>{module.label}</span>
         </div>
         <ChevronDown
           className={cn(
-            "h-4 w-4 transition-transform duration-300",
+            "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200",
             isOpen && "rotate-180"
           )}
         />
       </CollapsibleTrigger>
       <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-        <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-border/50 pl-3">
+        <div className="ml-5 mt-1 space-y-0.5 border-l border-primary/10 pl-3">
           {module.items.map((item) => {
             const ItemIcon = item.icon;
             const isItemActive =
@@ -185,14 +197,14 @@ function MobileNavModule({ module, onClose }: { module: NavModule; onClose: () =
                   to={item.to}
                   onClick={onClose}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2.5",
-                    "text-sm transition-all duration-200",
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2",
+                    "text-[13px] transition-all duration-150",
                     isItemActive
-                      ? "text-primary font-medium bg-primary/10"
+                      ? "text-primary font-medium bg-primary/8"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                   )}
                 >
-                  <ItemIcon className="h-4 w-4" />
+                  <ItemIcon className="h-3.5 w-3.5 flex-shrink-0" />
                   <span>{item.label}</span>
                 </Link>
               </SheetClose>
@@ -209,71 +221,80 @@ export function TopBar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className={cn(
-      "sticky top-0 z-40 h-16 lg:hidden",
-      "border-b transition-all duration-300",
-      "bg-background/80 dark:bg-background/60",
-      "backdrop-blur-xl",
-      "border-border/40 dark:border-border/20"
-    )}>
+    <header
+      className={cn(
+        "sticky top-0 z-40 h-14 lg:hidden",
+        "border-b transition-all duration-300",
+        "bg-background/80 dark:bg-background/60",
+        "backdrop-blur-xl",
+        "border-border/40 dark:border-border/20"
+      )}
+    >
       <div className="flex h-full items-center justify-between px-4">
-        {/* Mobile Menu */}
+        {/* Menu Sheet */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={cn(
-                "h-10 w-10 rounded-xl",
-                "hover:bg-muted/60"
-              )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-xl hover:bg-muted/60"
             >
               <Menu className="h-5 w-5" />
               <span className="sr-only">Abrir menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className={cn(
-            "w-[300px] p-0",
-            "bg-background/95 dark:bg-background/90",
-            "backdrop-blur-2xl"
-          )}>
-            <SheetHeader className="border-b border-border/40 p-5">
+          <SheetContent
+            side="left"
+            className={cn(
+              "w-[300px] p-0",
+              "bg-background/95 dark:bg-background/90",
+              "backdrop-blur-2xl"
+            )}
+          >
+            <SheetHeader className="border-b border-border/40 p-4">
               <SheetTitle className="text-left">
-                <div className={cn(
-                  "inline-block p-2 rounded-xl",
-                  "bg-gradient-to-br from-primary/10 via-transparent to-accent/10",
-                  "dark:from-primary/20 dark:via-transparent dark:to-accent/20"
-                )}>
-                  <img 
-                    src={logoTaysa} 
-                    alt="Dra. Taysa Dias" 
-                    className="h-12 w-auto drop-shadow-sm dark:brightness-125 dark:contrast-110 dark:saturate-110"
-                  />
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "p-1.5 rounded-xl",
+                      "bg-gradient-to-br from-primary/10 to-primary/5"
+                    )}
+                  >
+                    <img
+                      src={logoTaysa}
+                      alt="Dra. Taysa Dias"
+                      className="h-8 w-auto dark:brightness-125 dark:contrast-110"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-signature text-lg text-primary leading-tight">ÁUREA Clinic</p>
+                    <p className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Dra. Taysa Dias</p>
+                  </div>
                 </div>
               </SheetTitle>
             </SheetHeader>
 
-            <div className="p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-180px)]">
+            <div className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-160px)]">
               {/* Home */}
               <SheetClose asChild>
                 <Link
                   to="/"
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-4 py-3",
-                    "text-sm font-medium transition-all duration-300",
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5",
+                    "text-sm font-medium transition-all duration-200",
                     location.pathname === "/"
                       ? "bg-muted text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
-                  <div className="h-9 w-9 rounded-lg bg-muted/60 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
                     <Home className="h-4 w-4" />
                   </div>
                   <span>Início</span>
                 </Link>
               </SheetClose>
 
-              <Separator className="my-3 bg-border/40" />
+              <div className="separator-gold my-3 mx-1" />
 
               {/* Modules */}
               {modules.map((module) => (
@@ -284,7 +305,7 @@ export function TopBar() {
                 />
               ))}
 
-              <Separator className="my-3 bg-border/40" />
+              <div className="separator-gold my-3 mx-1" />
 
               {/* Global Items */}
               {globalItems.map((item) => {
@@ -297,23 +318,26 @@ export function TopBar() {
                     <Link
                       to={item.to}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl px-4 py-3",
-                        "text-sm font-medium transition-all duration-300",
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5",
+                        "text-sm font-medium transition-all duration-200",
                         isActive
                           ? "text-primary bg-primary/10"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                        isAI && !isActive && "text-primary/70 hover:text-primary"
+                          : isAI
+                          ? "text-primary/70 hover:text-primary hover:bg-primary/8"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       )}
                     >
-                      <div className={cn(
-                        "h-9 w-9 rounded-lg flex items-center justify-center",
-                        isAI ? "bg-primary/10" : "bg-muted/60"
-                      )}>
+                      <div
+                        className={cn(
+                          "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                          isAI ? "bg-primary/10" : "bg-muted/60"
+                        )}
+                      >
                         <Icon className="h-4 w-4" />
                       </div>
                       <span>{item.label}</span>
                       {isAI && !isActive && (
-                        <span className="ml-auto text-[9px] px-2 py-1 rounded-md bg-primary/10 text-primary font-semibold">
+                        <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-semibold">
                           IA
                         </span>
                       )}
@@ -323,38 +347,43 @@ export function TopBar() {
               })}
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 border-t border-border/40 p-4 bg-background/80 backdrop-blur-xl">
+            {/* Footer */}
+            <div className="absolute bottom-0 left-0 right-0 border-t border-border/40 p-3 bg-background/80 backdrop-blur-xl">
               <div className="flex items-center justify-between">
-                <ThemeToggle />
-                <UserAuthMenu />
+                <p className="text-[10px] text-muted-foreground/50">ÁUREA Clinic v1.0</p>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <UserAuthMenu />
+                </div>
               </div>
             </div>
           </SheetContent>
         </Sheet>
 
         {/* Brand */}
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className={cn(
-            "p-1.5 rounded-lg transition-all duration-300",
-            "bg-gradient-to-br from-primary/10 via-transparent to-accent/10",
-            "dark:from-primary/20 dark:via-transparent dark:to-accent/20",
-            "group-hover:from-primary/15 group-hover:to-accent/15"
-          )}>
-            <img 
-              src={logoTaysa} 
-              alt="Dra. Taysa Dias" 
+        <Link to="/" className="flex items-center gap-2 group">
+          <div
+            className={cn(
+              "p-1.5 rounded-lg transition-all duration-200",
+              "bg-gradient-to-br from-primary/10 to-primary/5",
+              "group-hover:from-primary/15 group-hover:to-primary/8"
+            )}
+          >
+            <img
+              src={logoTaysa}
+              alt="Dra. Taysa Dias"
               className={cn(
-                "h-10 w-auto transition-all duration-300",
-                "drop-shadow-sm",
-                "dark:brightness-125 dark:contrast-110 dark:saturate-110",
+                "h-8 w-auto transition-all duration-200",
+                "dark:brightness-125 dark:contrast-110",
                 "group-hover:scale-[1.02]"
               )}
             />
           </div>
+          <span className="font-signature text-xl text-primary leading-none">ÁUREA</span>
         </Link>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <ThemeToggle />
           <UserAuthMenu />
         </div>

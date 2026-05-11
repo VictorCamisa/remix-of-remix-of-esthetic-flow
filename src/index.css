@@ -83,6 +83,7 @@
     /* Typography */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     --font-mono: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    --font-signature: 'Great Vibes', cursive;
     
     /* Radius */
     --radius: 0.75rem;
@@ -1150,5 +1151,53 @@
   
   .transition-smooth {
     transition: all 0.3s ease;
+  }
+
+  /* ===== SIGNATURE TYPOGRAPHY ===== */
+  .font-signature {
+    font-family: var(--font-signature);
+  }
+
+  .text-signature {
+    font-family: var(--font-signature);
+    color: hsl(var(--primary));
+    line-height: 1.2;
+  }
+
+  .text-signature-muted {
+    font-family: var(--font-signature);
+    color: hsl(var(--muted-foreground));
+    line-height: 1.2;
+  }
+
+  /* ===== AUREA BRAND UTILITIES ===== */
+  .aurea-monogram {
+    font-family: var(--font-signature);
+    font-size: 1.5rem;
+    color: hsl(var(--primary));
+    line-height: 1;
+    display: inline-block;
+  }
+
+  .aurea-brand {
+    font-family: var(--font-signature);
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(39 50% 36%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.2;
+  }
+
+  /* Gold accent bar */
+  .gold-bar {
+    height: 3px;
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.3));
+    border-radius: 2px;
+  }
+
+  /* Premium separator */
+  .separator-gold {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent);
   }
 }
