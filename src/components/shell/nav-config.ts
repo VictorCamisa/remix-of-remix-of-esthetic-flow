@@ -27,6 +27,10 @@ import {
   Stethoscope,
   MessageCircle,
   LayoutDashboard,
+  Car,
+  ShoppingCart,
+  Award,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 
@@ -170,6 +174,38 @@ export const MODULES: NavModule[] = [
           { label: "Tratamentos", to: "/bi?tab=tratamentos", icon: PieChart },
           { label: "Sazonalidade", to: "/bi?tab=sazonalidade", icon: Calendar },
           { label: "Projeções", to: "/bi?tab=projecoes", icon: LineChart },
+        ],
+      },
+    ],
+  },
+  {
+    id: "mavers",
+    label: "Mavers · VS Auto",
+    short: "Mavers",
+    icon: Car,
+    basePath: "/mavers",
+    groups: [
+      {
+        items: [
+          { label: "Dashboard", to: "/mavers", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Operação",
+        items: [
+          { label: "Estoque", to: "/mavers/estoque", icon: Car },
+          { label: "Leads", to: "/mavers/leads", icon: Target },
+          { label: "CRM", to: "/mavers/crm", icon: Kanban },
+          { label: "Vendas", to: "/mavers/vendas", icon: ShoppingCart },
+        ],
+      },
+      {
+        label: "Gestão",
+        items: [
+          { label: "Comissões", to: "/mavers/comissoes", icon: Award },
+          { label: "Financeiro", to: "/mavers/financeiro", icon: DollarSign },
+          { label: "Marketing", to: "/mavers/marketing", icon: Megaphone },
+          { label: "Relatórios", to: "/mavers/relatorios", icon: FileBarChart },
         ],
       },
     ],

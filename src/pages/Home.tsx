@@ -1,6 +1,7 @@
 import {
   DollarSign, Users, Building2, BarChart3, ArrowRight, Sparkles, Settings,
   ClipboardList, Calendar, FileSignature, Kanban, TrendingUp, MessageCircle, LayoutDashboard,
+  Car,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ const modules = [
   { title: "Financeiro", desc: "Fluxo de caixa, DRE, orçamentos.", icon: DollarSign, href: "/financeiro" },
   { title: "Comercial", desc: "Pipeline, agendamentos, WhatsApp.", icon: Users, href: "/crm/pipeline" },
   { title: "Gestão Clínica", desc: "Contratos, anamneses, prontuários.", icon: ClipboardList, href: "/gestao" },
+  { title: "Mavers · VS Auto", desc: "Estoque, leads, vendas e CRM da loja Mavers.", icon: Car, href: "/mavers" },
   { title: "Business Intelligence", desc: "LTV/CAC, marketing, projeções.", icon: BarChart3, href: "/bi" },
   { title: "Administrativo", desc: "Usuários, LGPD, auditoria.", icon: Building2, href: "/admin" },
 ];

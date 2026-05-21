@@ -34,6 +34,10 @@ import {
   Pill,
   Stethoscope,
   MessageCircle,
+  Car,
+  ShoppingCart,
+  Award,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -120,6 +124,22 @@ const modules: NavModule[] = [
       { label: "Tratamentos", to: "/bi?tab=tratamentos", icon: PieChart },
       { label: "Sazonalidade", to: "/bi?tab=sazonalidade", icon: Calendar },
       { label: "Projeções", to: "/bi?tab=projecoes", icon: LineChart },
+    ],
+  },
+  {
+    label: "Mavers · VS Auto",
+    icon: Car,
+    basePath: "/mavers",
+    items: [
+      { label: "Dashboard", to: "/mavers", icon: Home },
+      { label: "Estoque", to: "/mavers/estoque", icon: Car },
+      { label: "Leads", to: "/mavers/leads", icon: Target },
+      { label: "CRM", to: "/mavers/crm", icon: Kanban },
+      { label: "Vendas", to: "/mavers/vendas", icon: ShoppingCart },
+      { label: "Comissões", to: "/mavers/comissoes", icon: Award },
+      { label: "Financeiro", to: "/mavers/financeiro", icon: DollarSign },
+      { label: "Marketing", to: "/mavers/marketing", icon: Megaphone },
+      { label: "Relatórios", to: "/mavers/relatorios", icon: FileBarChart },
     ],
   },
   {
