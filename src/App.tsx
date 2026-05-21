@@ -50,6 +50,18 @@ import FotosPage from "./pages/gestao/FotosPage";
 import ReceituariosPage from "./pages/gestao/ReceituariosPage";
 import ProntuariosPage from "./pages/gestao/ProntuariosPage";
 
+// Módulo Mavers (VS Auto)
+import MaversDashboard from "./pages/mavers/MaversDashboard";
+import MaversEstoque from "./pages/mavers/MaversEstoque";
+import MaversVehicleDetails from "./pages/mavers/MaversVehicleDetails";
+import MaversLeads from "./pages/mavers/MaversLeads";
+import MaversCRM from "./pages/mavers/MaversCRM";
+import MaversVendas from "./pages/mavers/MaversVendas";
+import MaversComissoes from "./pages/mavers/MaversComissoes";
+import MaversFinanceiro from "./pages/mavers/MaversFinanceiro";
+import MaversMarketing from "./pages/mavers/MaversMarketing";
+import MaversRelatorios from "./pages/mavers/MaversRelatorios";
+
 // Páginas públicas
 import FormularioPaciente from "./pages/public/FormularioPaciente";
 
@@ -124,6 +136,18 @@ const App = () => (
                         <Route path="/gestao/receituarios" element={<ReceituariosPage />} />
                         <Route path="/gestao/prontuarios" element={<ProntuariosPage />} />
                         
+                        {/* Módulo Mavers (VS Auto) */}
+                        <Route path="/mavers" element={<MaversDashboard />} />
+                        <Route path="/mavers/estoque" element={<MaversEstoque />} />
+                        <Route path="/mavers/estoque/:id" element={<MaversVehicleDetails />} />
+                        <Route path="/mavers/leads" element={<MaversLeads />} />
+                        <Route path="/mavers/crm" element={<MaversCRM />} />
+                        <Route path="/mavers/vendas" element={<MaversVendas />} />
+                        <Route path="/mavers/comissoes" element={<MaversComissoes />} />
+                        <Route path="/mavers/financeiro" element={<MaversFinanceiro />} />
+                        <Route path="/mavers/marketing" element={<MaversMarketing />} />
+                        <Route path="/mavers/relatorios" element={<MaversRelatorios />} />
+
                         {/* Global */}
                         <Route path="/assistente-ia" element={<AssistenteIA />} />
                         <Route path="/configuracoes" element={<Configuracoes />} />
