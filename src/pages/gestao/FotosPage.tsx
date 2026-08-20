@@ -14,9 +14,11 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
-  Search,
-  Filter,
   ChevronLeft,
   Plus,
   Trash2,
@@ -129,46 +131,42 @@ export default function FotosPage() {
         <Button variant="ghost" size="icon" asChild>
           <Link to="/gestao"><ChevronLeft className="h-5 w-5" /></Link>
         </Button>
-        <PageHeader title="Fotos" description="Gerencie todas as fotos dos pacientes" />
-        <div className="ml-auto">
-          <Button onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" /> Adicionar Foto
-          </Button>
-        </div>
+        <PageHeader
+          title="Fotos"
+          description="Visão agregada entre todos os pacientes — galeria de acompanhamento"
+          className="mb-0 flex-1"
+          actions={
+            <Button onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-2" /> Adicionar Foto
+            </Button>
+          }
+        />
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card/60 border-border/40">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por paciente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-            </div>
-            <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as categorias</SelectItem>
-                {CATEGORIAS.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar
+        search={{ value: search, onChange: setSearch, placeholder: "Buscar por paciente..." }}
+        filters={
+          <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+            <SelectTrigger className="w-full md:w-48">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as categorias</SelectItem>
+              {CATEGORIAS.map((c) => (
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      />
 
       {/* Gallery Grid */}
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+        <LoadingState />
       ) : !filtered?.length ? (
         <Card className="bg-card/60 border-border/40">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhuma foto encontrada</p>
+          <CardContent>
+            <EmptyState icon={Camera} title="Nenhuma foto encontrada" description="Ajuste os filtros ou adicione uma nova foto." />
           </CardContent>
         </Card>
       ) : (
@@ -284,21 +282,15 @@ export default function FotosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, foto: open ? deleteDialog.foto : null })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Excluir Foto</DialogTitle>
-            <DialogDescription>Tem certeza que deseja excluir esta foto? Esta ação não pode ser desfeita.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, foto: null })}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => deleteMutation.mutate(deleteDialog.foto?.id)} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Excluindo..." : "Confirmar Exclusão"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, foto: open ? deleteDialog.foto : null })}
+        title="Excluir Foto"
+        description="Tem certeza que deseja excluir esta foto? Esta ação não pode ser desfeita."
+        confirmLabel={deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+        variant="destructive"
+        onConfirm={() => deleteMutation.mutate(deleteDialog.foto?.id)}
+      />
     </div>
   );
 }

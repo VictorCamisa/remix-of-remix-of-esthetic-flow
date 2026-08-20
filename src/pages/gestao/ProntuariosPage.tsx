@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -14,14 +14,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { DataTableRowActions } from "@/components/ui/DataTableRowActions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
-  Search,
-  Filter,
   ChevronLeft,
   Plus,
-  Pencil,
-  Trash2,
   ExternalLink,
+  Stethoscope,
 } from "lucide-react";
 
 interface ProntuarioForm {
@@ -45,6 +47,7 @@ const EMPTY_FORM: ProntuarioForm = {
 };
 
 export default function ProntuariosPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [tratamentoFilter, setTratamentoFilter] = useState("all");
@@ -164,35 +167,32 @@ export default function ProntuariosPage() {
         <Button variant="ghost" size="icon" asChild>
           <Link to="/gestao"><ChevronLeft className="h-5 w-5" /></Link>
         </Button>
-        <PageHeader title="Prontuários" description="Gerencie todos os registros clínicos e evoluções" />
-        <div className="ml-auto">
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Prontuário
-          </Button>
-        </div>
+        <PageHeader
+          title="Prontuários"
+          description="Visão agregada entre todos os pacientes — registros clínicos e evoluções"
+          className="mb-0 flex-1"
+          actions={
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-2" /> Novo Prontuário
+            </Button>
+          }
+        />
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card/60 border-border/40">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por paciente ou tratamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-            </div>
-            <Select value={tratamentoFilter} onValueChange={setTratamentoFilter}>
-              <SelectTrigger className="w-full md:w-52">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Tratamento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tratamentos</SelectItem>
-                {tratamentos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar
+        search={{ value: search, onChange: setSearch, placeholder: "Buscar por paciente ou tratamento..." }}
+        filters={
+          <Select value={tratamentoFilter} onValueChange={setTratamentoFilter}>
+            <SelectTrigger className="w-full md:w-52">
+              <SelectValue placeholder="Tratamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tratamentos</SelectItem>
+              {tratamentos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        }
+      />
 
       {/* Table */}
       <Card className="bg-card/60 border-border/40">
@@ -210,9 +210,9 @@ export default function ProntuariosPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6}><LoadingState /></TableCell></TableRow>
               ) : !filtered?.length ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum prontuário encontrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6}><EmptyState icon={Stethoscope} title="Nenhum prontuário encontrado" description="Ajuste os filtros ou registre um novo prontuário." size="sm" /></TableCell></TableRow>
               ) : (
                 filtered.map((prontuario) => (
                   <TableRow key={prontuario.id}>
@@ -232,17 +232,14 @@ export default function ProntuariosPage() {
                       {prontuario.proximos_passos ? prontuario.proximos_passos.substring(0, 50) + (prontuario.proximos_passos.length > 50 ? "..." : "") : "—"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" asChild title="Ver paciente">
-                          <Link to={`/crm/pacientes/${prontuario.paciente_id}`}><ExternalLink className="h-4 w-4" /></Link>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(prontuario)} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ open: true, prontuario })} title="Excluir" className="text-red-600 hover:text-red-700">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <DataTableRowActions
+                        className="justify-end"
+                        onEdit={() => openEdit(prontuario)}
+                        onDelete={() => setDeleteDialog({ open: true, prontuario })}
+                        statusActions={[
+                          { icon: ExternalLink, label: "Ver paciente", onClick: () => navigate(`/crm/pacientes/${prontuario.paciente_id}`) },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
@@ -309,21 +306,15 @@ export default function ProntuariosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, prontuario: open ? deleteDialog.prontuario : null })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Excluir Prontuário</DialogTitle>
-            <DialogDescription>Tem certeza que deseja excluir este prontuário? Esta ação não pode ser desfeita.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, prontuario: null })}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => deleteMutation.mutate(deleteDialog.prontuario?.id)} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Excluindo..." : "Confirmar Exclusão"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, prontuario: open ? deleteDialog.prontuario : null })}
+        title="Excluir Prontuário"
+        description="Tem certeza que deseja excluir este prontuário? Esta ação não pode ser desfeita."
+        confirmLabel={deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+        variant="destructive"
+        onConfirm={() => deleteMutation.mutate(deleteDialog.prontuario?.id)}
+      />
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,18 +16,20 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { KPICard } from "@/components/ui/KPICard";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { DataTableRowActions } from "@/components/ui/DataTableRowActions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
-  Search,
-  Filter,
   ChevronLeft,
   Plus,
   Trash2,
   ExternalLink,
-  Pencil,
   CheckCircle,
   XCircle,
   FileText,
-  TrendingUp,
   Clock,
   DollarSign,
 } from "lucide-react";
@@ -68,6 +70,7 @@ const EMPTY_FORM: PlanoForm = {
 };
 
 export default function PlanosTratamentoPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -282,59 +285,44 @@ export default function PlanosTratamentoPage() {
         <Button variant="ghost" size="icon" asChild>
           <Link to="/gestao"><ChevronLeft className="h-5 w-5" /></Link>
         </Button>
-        <PageHeader title="Planos de Tratamento" description="Gerencie todos os planos e propostas de tratamento" />
-        <div className="ml-auto">
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Plano
-          </Button>
-        </div>
+        <PageHeader
+          title="Planos de Tratamento"
+          description="Visão agregada entre todos os pacientes — acompanhamento e aprovação de propostas"
+          className="mb-0 flex-1"
+          actions={
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-2" /> Novo Plano
+            </Button>
+          }
+        />
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Total Planos", value: total, icon: FileText, color: "text-blue-500" },
-          { label: "Aprovados", value: aprovados, icon: CheckCircle, color: "text-emerald-500" },
-          { label: "Pendentes", value: pendentes, icon: Clock, color: "text-yellow-500" },
-          { label: "Valor Aprovado", value: CURRENCY_FORMAT.format(valorAprovado), icon: DollarSign, color: "text-green-500" },
-        ].map((kpi) => (
-          <Card key={kpi.label} className="bg-card/60 border-border/40">
-            <CardContent className="p-4 flex items-center gap-3">
-              <kpi.icon className={cn("h-8 w-8", kpi.color)} />
-              <div>
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                <p className="text-xl font-bold">{kpi.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <KPICard label="Total Planos" value={total} icon={FileText} />
+        <KPICard label="Aprovados" value={aprovados} icon={CheckCircle} tone="success" />
+        <KPICard label="Pendentes" value={pendentes} icon={Clock} tone="warning" />
+        <KPICard label="Valor Aprovado" value={CURRENCY_FORMAT.format(valorAprovado)} icon={DollarSign} tone="success" />
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card/60 border-border/40">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por paciente ou título..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="aprovado">Aprovado</SelectItem>
-                <SelectItem value="recusado">Recusado</SelectItem>
-                <SelectItem value="em_execucao">Em Execução</SelectItem>
-                <SelectItem value="concluido">Concluído</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar
+        search={{ value: search, onChange: setSearch, placeholder: "Buscar por paciente ou título..." }}
+        filters={
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full md:w-48">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="aprovado">Aprovado</SelectItem>
+              <SelectItem value="recusado">Recusado</SelectItem>
+              <SelectItem value="em_execucao">Em Execução</SelectItem>
+              <SelectItem value="concluido">Concluído</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
 
       {/* Table */}
       <Card className="bg-card/60 border-border/40">
@@ -353,9 +341,9 @@ export default function PlanosTratamentoPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7}><LoadingState /></TableCell></TableRow>
               ) : !filtered?.length ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum plano encontrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7}><EmptyState icon={FileText} title="Nenhum plano encontrado" description="Ajuste os filtros ou crie um novo plano." size="sm" /></TableCell></TableRow>
               ) : (
                 filtered.map((plano) => {
                   const itens: PlanoItem[] = Array.isArray(plano.itens) ? plano.itens : [];
@@ -378,24 +366,19 @@ export default function PlanosTratamentoPage() {
                         {plano.created_at ? format(new Date(plano.created_at), "dd/MM/yyyy", { locale: ptBR }) : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" asChild title="Ver paciente">
-                            <Link to={`/crm/pacientes/${plano.paciente_id}`}><ExternalLink className="h-4 w-4" /></Link>
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(plano)} title="Editar">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          {plano.status === "pendente" && (
-                            <>
-                              <Button variant="ghost" size="icon" onClick={() => openAprovar(plano)} title="Aprovar" className="text-emerald-600 hover:text-emerald-700">
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => setRecusarDialog({ open: true, plano })} title="Recusar" className="text-red-600 hover:text-red-700">
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                        <DataTableRowActions
+                          className="justify-end"
+                          onEdit={() => openEdit(plano)}
+                          statusActions={[
+                            { icon: ExternalLink, label: "Ver paciente", onClick: () => navigate(`/crm/pacientes/${plano.paciente_id}`) },
+                            ...(plano.status === "pendente"
+                              ? [
+                                  { icon: CheckCircle, label: "Aprovar", tone: "success" as const, onClick: () => openAprovar(plano) },
+                                  { icon: XCircle, label: "Recusar", tone: "destructive" as const, onClick: () => setRecusarDialog({ open: true, plano }) },
+                                ]
+                              : []),
+                          ]}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -540,20 +523,15 @@ export default function PlanosTratamentoPage() {
       </Dialog>
 
       {/* Recusar Dialog */}
-      <Dialog open={recusarDialog.open} onOpenChange={(open) => setRecusarDialog({ open, plano: open ? recusarDialog.plano : null })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Recusar Plano</DialogTitle>
-            <DialogDescription>Tem certeza que deseja recusar este plano de tratamento?</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRecusarDialog({ open: false, plano: null })}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => recusarMutation.mutate(recusarDialog.plano?.id)} disabled={recusarMutation.isPending}>
-              {recusarMutation.isPending ? "Recusando..." : "Confirmar Recusa"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={recusarDialog.open}
+        onOpenChange={(open) => setRecusarDialog({ open, plano: open ? recusarDialog.plano : null })}
+        title="Recusar Plano"
+        description="Tem certeza que deseja recusar este plano de tratamento?"
+        confirmLabel={recusarMutation.isPending ? "Recusando..." : "Confirmar Recusa"}
+        variant="destructive"
+        onConfirm={() => recusarMutation.mutate(recusarDialog.plano?.id)}
+      />
     </div>
   );
 }
