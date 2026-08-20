@@ -27,6 +27,8 @@ import {
   Stethoscope,
   MessageCircle,
   LayoutDashboard,
+  XCircle,
+  CheckSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -116,6 +118,7 @@ export const MODULES: NavModule[] = [
         items: [
           { label: "Pacientes", to: "/crm/pacientes", icon: Users },
           { label: "Leads", to: "/crm/leads", icon: Target },
+          { label: "Leads Perdidos", to: "/crm/leads-perdidos", icon: XCircle },
         ],
       },
       {
@@ -184,6 +187,7 @@ export const MODULES: NavModule[] = [
       {
         items: [
           { label: "Usuários", to: "/admin?tab=usuarios", icon: Users },
+          { label: "Checklists", to: "/admin?tab=checklists", icon: CheckSquare },
           { label: "LGPD", to: "/admin?tab=lgpd", icon: Lock },
           { label: "Documentos", to: "/admin?tab=documentos", icon: FileText },
           { label: "Auditoria", to: "/admin?tab=auditoria", icon: History },

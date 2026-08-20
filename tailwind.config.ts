@@ -60,7 +60,14 @@ export default {
 			success: { DEFAULT: 'hsl(var(--success))', foreground: 'hsl(var(--success-foreground))' },
 			warning: { DEFAULT: 'hsl(var(--warning))', foreground: 'hsl(var(--warning-foreground))' },
 			info:    { DEFAULT: 'hsl(var(--info))',    foreground: 'hsl(var(--info-foreground))' },
-			surface: { 1: 'hsl(var(--surface-1))', 2: 'hsl(var(--surface-2))' }
+			surface: { 1: 'hsl(var(--surface-1))', 2: 'hsl(var(--surface-2))' },
+			module: {
+				financeiro: 'hsl(var(--module-financeiro))',
+				crm: 'hsl(var(--module-crm))',
+				admin: 'hsl(var(--module-admin))',
+				bi: 'hsl(var(--module-bi))',
+				gestao: 'hsl(var(--module-gestao))'
+			}
 		},
   		borderRadius: {
   			lg: 'var(--radius)',

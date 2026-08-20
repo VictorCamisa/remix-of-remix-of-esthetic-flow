@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -16,12 +16,15 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { KPICard } from "@/components/ui/KPICard";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { DataTableRowActions } from "@/components/ui/DataTableRowActions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
-  Search,
-  Filter,
   ChevronLeft,
   Plus,
-  Pencil,
   ExternalLink,
   FileSignature,
   CheckCircle,
@@ -69,6 +72,7 @@ const EMPTY_FORM: ContratoForm = {
 };
 
 export default function ContratosPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -199,44 +203,31 @@ export default function ContratosPage() {
         <Button variant="ghost" size="icon" asChild>
           <Link to="/gestao"><ChevronLeft className="h-5 w-5" /></Link>
         </Button>
-        <PageHeader title="Contratos" description="Gerencie todos os contratos e termos de serviço" />
-        <div className="ml-auto">
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Contrato
-          </Button>
-        </div>
+        <PageHeader
+          title="Contratos"
+          description="Visão agregada entre todos os pacientes — acompanhamento de contratos e termos"
+          className="mb-0 flex-1"
+          actions={
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-2" /> Novo Contrato
+            </Button>
+          }
+        />
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Total", value: total, icon: FileText, color: "text-blue-500" },
-          { label: "Assinados", value: assinados, icon: CheckCircle, color: "text-emerald-500" },
-          { label: "Pendentes", value: pendentes, icon: Clock, color: "text-yellow-500" },
-        ].map((kpi) => (
-          <Card key={kpi.label} className="bg-card/60 border-border/40">
-            <CardContent className="p-4 flex items-center gap-3">
-              <kpi.icon className={cn("h-8 w-8", kpi.color)} />
-              <div>
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                <p className="text-xl font-bold">{kpi.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <KPICard label="Total" value={total} icon={FileText} />
+        <KPICard label="Assinados" value={assinados} icon={CheckCircle} tone="success" />
+        <KPICard label="Pendentes" value={pendentes} icon={Clock} tone="warning" />
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card/60 border-border/40">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por paciente ou título..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-            </div>
+      <FilterBar
+        search={{ value: search, onChange: setSearch, placeholder: "Buscar por paciente ou título..." }}
+        filters={
+          <>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-44">
-                <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -248,7 +239,6 @@ export default function ContratosPage() {
             </Select>
             <Select value={tipoFilter} onValueChange={setTipoFilter}>
               <SelectTrigger className="w-full md:w-52">
-                <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -258,9 +248,9 @@ export default function ContratosPage() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        </CardContent>
-      </Card>
+          </>
+        }
+      />
 
       {/* Table */}
       <Card className="bg-card/60 border-border/40">
@@ -279,9 +269,9 @@ export default function ContratosPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7}><LoadingState /></TableCell></TableRow>
               ) : !filtered?.length ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum contrato encontrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7}><EmptyState icon={FileText} title="Nenhum contrato encontrado" description="Ajuste os filtros ou crie um novo contrato." size="sm" /></TableCell></TableRow>
               ) : (
                 filtered.map((contrato) => {
                   const cfg = STATUS_CONFIG[contrato.status] || { label: contrato.status, className: "" };
@@ -304,24 +294,19 @@ export default function ContratosPage() {
                         {contrato.data_assinatura ? format(new Date(contrato.data_assinatura), "dd/MM/yyyy", { locale: ptBR }) : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" asChild title="Ver paciente">
-                            <Link to={`/crm/pacientes/${contrato.paciente_id}`}><ExternalLink className="h-4 w-4" /></Link>
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(contrato)} title="Editar">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          {contrato.status === "pendente" && (
-                            <>
-                              <Button variant="ghost" size="icon" onClick={() => setAssinarDialog({ open: true, contrato })} title="Marcar como Assinado" className="text-emerald-600 hover:text-emerald-700">
-                                <FileSignature className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => setCancelarDialog({ open: true, contrato })} title="Cancelar" className="text-red-600 hover:text-red-700">
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                        <DataTableRowActions
+                          className="justify-end"
+                          onEdit={() => openEdit(contrato)}
+                          statusActions={[
+                            { icon: ExternalLink, label: "Ver paciente", onClick: () => navigate(`/crm/pacientes/${contrato.paciente_id}`) },
+                            ...(contrato.status === "pendente"
+                              ? [
+                                  { icon: FileSignature, label: "Marcar como Assinado", tone: "success" as const, onClick: () => setAssinarDialog({ open: true, contrato }) },
+                                  { icon: XCircle, label: "Cancelar", tone: "destructive" as const, onClick: () => setCancelarDialog({ open: true, contrato }) },
+                                ]
+                              : []),
+                          ]}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -378,41 +363,24 @@ export default function ContratosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Assinar Dialog */}
-      <Dialog open={assinarDialog.open} onOpenChange={(open) => setAssinarDialog({ open, contrato: open ? assinarDialog.contrato : null })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Marcar como Assinado</DialogTitle>
-            <DialogDescription>
-              Confirme que o contrato "{assinarDialog.contrato?.titulo}" foi assinado. A data de assinatura será registrada como agora.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAssinarDialog({ open: false, contrato: null })}>Cancelar</Button>
-            <Button onClick={() => assinarMutation.mutate(assinarDialog.contrato?.id)} disabled={assinarMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700">
-              {assinarMutation.isPending ? "Salvando..." : "Confirmar Assinatura"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={assinarDialog.open}
+        onOpenChange={(open) => setAssinarDialog({ open, contrato: open ? assinarDialog.contrato : null })}
+        title="Marcar como Assinado"
+        description={`Confirme que o contrato "${assinarDialog.contrato?.titulo}" foi assinado. A data de assinatura será registrada como agora.`}
+        confirmLabel={assinarMutation.isPending ? "Salvando..." : "Confirmar Assinatura"}
+        onConfirm={() => assinarMutation.mutate(assinarDialog.contrato?.id)}
+      />
 
-      {/* Cancelar Dialog */}
-      <Dialog open={cancelarDialog.open} onOpenChange={(open) => setCancelarDialog({ open, contrato: open ? cancelarDialog.contrato : null })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cancelar Contrato</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja cancelar o contrato "{cancelarDialog.contrato?.titulo}"?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelarDialog({ open: false, contrato: null })}>Voltar</Button>
-            <Button variant="destructive" onClick={() => cancelarMutation.mutate(cancelarDialog.contrato?.id)} disabled={cancelarMutation.isPending}>
-              {cancelarMutation.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={cancelarDialog.open}
+        onOpenChange={(open) => setCancelarDialog({ open, contrato: open ? cancelarDialog.contrato : null })}
+        title="Cancelar Contrato"
+        description={`Tem certeza que deseja cancelar o contrato "${cancelarDialog.contrato?.titulo}"?`}
+        confirmLabel={cancelarMutation.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
+        variant="destructive"
+        onConfirm={() => cancelarMutation.mutate(cancelarDialog.contrato?.id)}
+      />
     </div>
   );
 }

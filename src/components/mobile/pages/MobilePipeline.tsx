@@ -29,14 +29,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  Kanban,
-  Heart,
-  XCircle,
   Plus,
   Search,
   X,
   Clock,
-  type LucideIcon,
 } from "lucide-react";
 import {
   useCRMAgendamentos,
@@ -54,21 +50,13 @@ import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import { MODULES } from "@/components/shell/nav-config";
 
-interface NavItem {
-  label: string;
-  to: string;
-  icon?: LucideIcon;
-}
-
-const crmNavItems: NavItem[] = [
-  { label: "Pipeline", to: "/crm/pipeline", icon: Kanban },
-  { label: "Agenda", to: "/crm/agendamentos", icon: Calendar },
-  { label: "WhatsApp", to: "/crm/whatsapp", icon: MessageCircle },
-  { label: "Pós-venda", to: "/crm/pos-venda", icon: Heart },
-  { label: "Perdidos", to: "/crm/perdidos", icon: XCircle },
-  { label: "Pacientes", to: "/crm/pacientes", icon: Users },
-];
+// Same items shown in the desktop sidebar's CRM section — kept in sync via the shared config.
+const crmModuleItems = MODULES.find((m) => m.id === "crm")!.groups.flatMap((g) => g.items);
+const crmNavItems = ["/crm/pipeline", "/crm/agendamentos", "/crm/whatsapp", "/crm/pos-venda", "/crm/leads-perdidos", "/crm/pacientes"]
+  .map((to) => crmModuleItems.find((item) => item.to === to)!)
+  .filter(Boolean);
 
 const prioridadeConfig: Record<string, { emoji: string; color: string; bg: string }> = {
   alto: { emoji: "🔥", color: "text-orange-500", bg: "bg-orange-500/10 border-orange-500/20" },

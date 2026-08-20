@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -14,13 +14,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { DataTableRowActions } from "@/components/ui/DataTableRowActions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
-  Search,
   ChevronLeft,
   Plus,
-  Pencil,
-  Trash2,
   ExternalLink,
+  Pill,
 } from "lucide-react";
 
 interface ReceituarioForm {
@@ -42,6 +45,7 @@ const EMPTY_FORM: ReceituarioForm = {
 };
 
 export default function ReceituariosPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -141,23 +145,19 @@ export default function ReceituariosPage() {
         <Button variant="ghost" size="icon" asChild>
           <Link to="/gestao"><ChevronLeft className="h-5 w-5" /></Link>
         </Button>
-        <PageHeader title="Receituários" description="Gerencie todas as prescrições médicas digitais" />
-        <div className="ml-auto">
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Receituário
-          </Button>
-        </div>
+        <PageHeader
+          title="Receituários"
+          description="Visão agregada entre todos os pacientes — fila de prescrições digitais"
+          className="mb-0 flex-1"
+          actions={
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-2" /> Novo Receituário
+            </Button>
+          }
+        />
       </div>
 
-      {/* Search */}
-      <Card className="bg-card/60 border-border/40">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por paciente ou medicamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar search={{ value: search, onChange: setSearch, placeholder: "Buscar por paciente ou medicamento..." }} />
 
       {/* Table */}
       <Card className="bg-card/60 border-border/40">
@@ -174,9 +174,9 @@ export default function ReceituariosPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5}><LoadingState /></TableCell></TableRow>
               ) : !filtered?.length ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum receituário encontrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5}><EmptyState icon={Pill} title="Nenhum receituário encontrado" description="Ajuste a busca ou crie uma nova prescrição." size="sm" /></TableCell></TableRow>
               ) : (
                 filtered.map((receituario) => (
                   <TableRow key={receituario.id}>
@@ -195,17 +195,14 @@ export default function ReceituariosPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{receituario.validade_dias ?? 30} dias</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" asChild title="Ver paciente">
-                          <Link to={`/crm/pacientes/${receituario.paciente_id}`}><ExternalLink className="h-4 w-4" /></Link>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(receituario)} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ open: true, receituario })} title="Excluir" className="text-red-600 hover:text-red-700">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <DataTableRowActions
+                        className="justify-end"
+                        onEdit={() => openEdit(receituario)}
+                        onDelete={() => setDeleteDialog({ open: true, receituario })}
+                        statusActions={[
+                          { icon: ExternalLink, label: "Ver paciente", onClick: () => navigate(`/crm/pacientes/${receituario.paciente_id}`) },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
@@ -268,21 +265,15 @@ export default function ReceituariosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, receituario: open ? deleteDialog.receituario : null })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Excluir Receituário</DialogTitle>
-            <DialogDescription>Tem certeza que deseja excluir esta prescrição? Esta ação não pode ser desfeita.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, receituario: null })}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => deleteMutation.mutate(deleteDialog.receituario?.id)} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Excluindo..." : "Confirmar Exclusão"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, receituario: open ? deleteDialog.receituario : null })}
+        title="Excluir Receituário"
+        description="Tem certeza que deseja excluir esta prescrição? Esta ação não pode ser desfeita."
+        confirmLabel={deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+        variant="destructive"
+        onConfirm={() => deleteMutation.mutate(deleteDialog.receituario?.id)}
+      />
     </div>
   );
 }

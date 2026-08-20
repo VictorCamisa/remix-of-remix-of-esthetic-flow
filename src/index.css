@@ -72,11 +72,12 @@
     --sidebar-border: 220 14% 88%;
     --sidebar-ring: 192 90% 38%;
 
-    /* Module accent (kept for legacy, all use primary now) */
-    --module-financeiro: var(--primary);
-    --module-crm: var(--primary);
-    --module-admin: var(--primary);
-    --module-bi: var(--primary);
+    /* Module accent — distinct hue per module for wayfinding across rail/badges */
+    --module-financeiro: 165 75% 38%;
+    --module-crm: 275 70% 52%;
+    --module-admin: 235 70% 50%;
+    --module-bi: 310 65% 48%;
+    --module-gestao: 345 75% 48%;
 
     /* Typography */
     --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -166,10 +167,11 @@
     --sidebar-border: 220 14% 14%;
     --sidebar-ring: 192 80% 50%;
 
-    --module-financeiro: var(--primary);
-    --module-crm: var(--primary);
-    --module-admin: var(--primary);
-    --module-bi: var(--primary);
+    --module-financeiro: 165 65% 55%;
+    --module-crm: 275 75% 68%;
+    --module-admin: 235 80% 68%;
+    --module-bi: 310 70% 65%;
+    --module-gestao: 345 80% 68%;
 
     --shadow-2xs: 0 0 0 1px hsl(220 14% 16% / 0.6);
     --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
@@ -238,6 +240,7 @@
     --color-module-crm: hsl(var(--module-crm));
     --color-module-admin: hsl(var(--module-admin));
     --color-module-bi: hsl(var(--module-bi));
+    --color-module-gestao: hsl(var(--module-gestao));
 
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);

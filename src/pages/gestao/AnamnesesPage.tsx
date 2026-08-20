@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -14,13 +14,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { DataTableRowActions } from "@/components/ui/DataTableRowActions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
-  Search,
   ChevronLeft,
   Plus,
-  Pencil,
-  Trash2,
   ExternalLink,
+  ClipboardList,
 } from "lucide-react";
 
 interface AnamneseForm {
@@ -54,6 +57,7 @@ const EMPTY_FORM: AnamneseForm = {
 };
 
 export default function AnamnesesPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -159,23 +163,19 @@ export default function AnamnesesPage() {
         <Button variant="ghost" size="icon" asChild>
           <Link to="/gestao"><ChevronLeft className="h-5 w-5" /></Link>
         </Button>
-        <PageHeader title="Anamneses" description="Gerencie todas as fichas de anamnese" />
-        <div className="ml-auto">
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4 mr-2" /> Nova Anamnese
-          </Button>
-        </div>
+        <PageHeader
+          title="Anamneses"
+          description="Visão agregada entre todos os pacientes — fila de acompanhamento"
+          className="mb-0 flex-1"
+          actions={
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-2" /> Nova Anamnese
+            </Button>
+          }
+        />
       </div>
 
-      {/* Search */}
-      <Card className="bg-card/60 border-border/40">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por paciente ou queixa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar search={{ value: search, onChange: setSearch, placeholder: "Buscar por paciente ou queixa..." }} />
 
       {/* Table */}
       <Card className="bg-card/60 border-border/40">
@@ -192,9 +192,9 @@ export default function AnamnesesPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5}><LoadingState /></TableCell></TableRow>
               ) : !filtered?.length ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma anamnese encontrada</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5}><EmptyState icon={ClipboardList} title="Nenhuma anamnese encontrada" description="Ajuste a busca ou registre uma nova anamnese." size="sm" /></TableCell></TableRow>
               ) : (
                 filtered.map((anamnese) => (
                   <TableRow key={anamnese.id}>
@@ -209,17 +209,14 @@ export default function AnamnesesPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground max-w-xs truncate">{anamnese.alergias || "Nenhuma"}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" asChild title="Ver paciente">
-                          <Link to={`/crm/pacientes/${anamnese.paciente_id}`}><ExternalLink className="h-4 w-4" /></Link>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(anamnese)} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ open: true, anamnese })} title="Excluir" className="text-red-600 hover:text-red-700">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <DataTableRowActions
+                        className="justify-end"
+                        onEdit={() => openEdit(anamnese)}
+                        onDelete={() => setDeleteDialog({ open: true, anamnese })}
+                        statusActions={[
+                          { icon: ExternalLink, label: "Ver paciente", onClick: () => navigate(`/crm/pacientes/${anamnese.paciente_id}`) },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
@@ -309,23 +306,15 @@ export default function AnamnesesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, anamnese: open ? deleteDialog.anamnese : null })}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Excluir Anamnese</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir esta anamnese? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, anamnese: null })}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => deleteMutation.mutate(deleteDialog.anamnese?.id)} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Excluindo..." : "Confirmar Exclusão"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, anamnese: open ? deleteDialog.anamnese : null })}
+        title="Excluir Anamnese"
+        description="Tem certeza que deseja excluir esta anamnese? Esta ação não pode ser desfeita."
+        confirmLabel={deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+        variant="destructive"
+        onConfirm={() => deleteMutation.mutate(deleteDialog.anamnese?.id)}
+      />
     </div>
   );
 }
